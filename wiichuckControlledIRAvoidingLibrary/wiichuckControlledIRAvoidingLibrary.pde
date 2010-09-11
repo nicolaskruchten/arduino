@@ -42,6 +42,7 @@ void setup()
   mc.init(7, 8);
   Wire.begin();
   previous_read_time = millis();
+  Serial.begin(9600);
 }
 
 void loop()
@@ -56,33 +57,19 @@ void loop()
     previous_read_time = millis();
     if(chuck.readData())
     {      
-      if(chuck.joy_y > 240)
+      
+      float angle = 45*PI/180;
+      int x = chuck.joy_x -128;
+      int y = chuck.joy_y -128;
+      
+      if(abs(x) > 50 || abs(y) > 50)
       {
-        mc.SetMotor(left, forward);
-        mc.SetMotor(right, forward);
+        int leftSpeed  = 128 + 1.5*(x*cos(angle) + y*sin(angle));
+        int rightSpeed = 128 + 1.5*(y*cos(angle) - x*sin(angle));
+        mc.SetMotor(left, leftSpeed);
+        mc.SetMotor(right, rightSpeed);
         autonomous = false;
-      }
-      else if(chuck.joy_y < 40)
-      {
-          //backward
-        mc.SetMotor(left, backward);
-        mc.SetMotor(right, backward);
-        autonomous = false;
-      }
-      else if(chuck.joy_x >240)
-      {
-          //right
-        mc.SetMotor(left, forward);
-        mc.SetMotor(right, backward);
-        autonomous = false;
-      }
-      else if(chuck.joy_x < 40)
-      {
-          //left
-        mc.SetMotor(left, backward);
-        mc.SetMotor(right, forward);
-        autonomous = false;
-      }
+      } 
       
       if(chuck.btn_z!= 0)
       {
