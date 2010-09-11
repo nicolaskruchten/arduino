@@ -1,6 +1,8 @@
 
 #include "pmc.h"
 
+#define BITDELAY 84
+
 // Public: Initialize the motor controller and unique serial communications
 void MotorController::init(int txPin, int resetPin)
 {
@@ -74,20 +76,19 @@ void MotorController::SetMotor(int motorIndex, int speed, boolean GoForward)
 		targetSpeed = (unsigned char)speed;
 	buffer[3] = targetSpeed;
  
- 	int bitDelay = 1000000/9600 - clockCyclesToMicroseconds(50);
  
 	// Send the packet	
 	for(int i = 0; i < 4; i++)
 	{
 	  digitalWrite(tx,LOW);
-      delayMicroseconds(bitDelay);
+      delayMicroseconds(BITDELAY);
       for (byte mask = 0x01; mask>0; mask <<= 1) 
       { 
         digitalWrite(tx, buffer[i] & mask ? HIGH : LOW);
-        delayMicroseconds(bitDelay);
+        delayMicroseconds(BITDELAY);
       }
       digitalWrite(tx, HIGH);
-      delayMicroseconds(bitDelay);
+      delayMicroseconds(BITDELAY);
 	}
 	delay(10);
 }
