@@ -1,7 +1,10 @@
 
 #include <Wire.h>
 #include <TypeK.h>
+#include <WiShield.h>
 #include "TempSensor.h"
+#include "WifiConfig.h"
+
 
 // ------------------------------------------------------------------------
 // MAIN
