@@ -40,6 +40,8 @@
 
 extern float temp;
 extern float ambient;
+extern float setpoint;
+extern unsigned long int lastStart;
 
 static int handle_connection(struct webserver_state *s);
 
@@ -63,17 +65,7 @@ void webserver_appcall(void)
 #define ISO_space   0x20
 #define ISO_slash   0x2f
 
-const char http_get[5] = {0x47, 0x45, 0x54, 0x20, };	/* "GET " */
-
-unsigned short fill_buf(void* blk)
-{
-	unsigned short webpage_len;
-
-	webpage_len = (strlen_P(webpage)>uip_mss())?uip_mss():strlen_P(webpage);
-
-	memcpy_P(uip_appdata, webpage, webpage_len);
-	return webpage_len;
-}
+//const char http_get[5] = {0x47, 0x45, 0x54, 0x20, };	/* "GET " */
 
 static int handle_connection(struct webserver_state *s)
 {
@@ -90,36 +82,46 @@ static int handle_connection(struct webserver_state *s)
 	PSOCK_READTO(&s->p, ISO_space);
 
 	// parse the data to determine if it was a GET request
-	if(strncmp(s->inputbuf, http_get, 4) != 0) {
+	if(strncmp(s->inputbuf, "GET ", 4) != 0) {
 		PSOCK_CLOSE_EXIT(&s->p);
 	}
 
 	// continue reading until the next space character
 	PSOCK_READTO(&s->p, ISO_space);
-
-	// determine the requested resource
-	// in this case, we check if the request was for the '/' root page
-	// AKA index.html
+        
+        //s->inputbuf now contains the requested URL
 	if(s->inputbuf[0] != ISO_slash) {
 		// request for unknown webpage, close and exit
 		PSOCK_CLOSE_EXIT(&s->p);
 	}
-
-	if(s->inputbuf[1] != ISO_space) {
-		// request for unavailable resource
-		// not supported, modify to add support for additional resources
-		PSOCK_CLOSE_EXIT(&s->p);
+         
+	if(s->inputbuf[1] != ISO_space) //action requested! 
+        {
+          if(strncmp(s->inputbuf, "/start", 6) == 0)
+          {
+            setpoint = 100.0;
+            lastStart = millis();
+          }
+          if(strncmp(s->inputbuf, "/up", 3) == 0)
+          {
+            setpoint += 1.0;
+          }
+          if(strncmp(s->inputbuf, "/down", 5) == 0)
+          {
+            setpoint += -1.0;
+          }
+          if(strncmp(s->inputbuf, "/stop", 5) == 0)
+          {
+            setpoint = 0.0;
+          }
 	}
 
-	//PSOCK_SEND_STR(&s->p, "HTTP/1.1 200 OK\r\n");
-	//PSOCK_SEND_STR(&s->p, "Content-Type: text/html\r\n");
-	//PSOCK_SEND_STR(&s->p, "\r\n");
-	//PSOCK_SEND_STR(&s->p, "Hello World, I am WiShield");
-	//PSOCK_SEND_STR(&s->p, "<center><h1>Hello World!! I am WiShield</h1></center>");
-	PSOCK_GENERATOR_SEND(&s->p, fill_buf, 0);
-	PSOCK_SEND_STR(&s->p, dtostrf(ambient, 5,2));
-	PSOCK_SEND_STR(&s->p, " ");
+	PSOCK_SEND_STR(&s->p, "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n");
+	PSOCK_SEND_STR(&s->p, "{\"temp\":");
 	PSOCK_SEND_STR(&s->p, dtostrf(temp, 5,2));
+	PSOCK_SEND_STR(&s->p, ",\"target\":");
+	PSOCK_SEND_STR(&s->p, dtostrf(setpoint, 5,2));
+	PSOCK_SEND_STR(&s->p, "}");
 	PSOCK_CLOSE(&s->p);
 	PSOCK_END(&s->p);
 }
