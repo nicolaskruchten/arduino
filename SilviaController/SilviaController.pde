@@ -5,43 +5,78 @@
 #include "WifiConfig.h"
 
 
-
-TempSensor ts;
-unsigned long int nextUpdate = 0;
-
-float temp = 0; //last recorded temperature value
-float ambient = 0; //last recorded ambient value
-int val = 0;
-
-class Setpoint {
+class Controller {
   private:
-    float setpoint;
+    float p,i,d, temp, setpoint, lastError, integral;
     unsigned long int lastStart; //last time controller was activated
   public:
-    Setpoint():setpoint(0.0), lastStart(0) {}
+    Controller(float p_, float i_ = 0, float d_ = 0):
+      p(p_), i(i_), d(d_),
+      temp(0.0), setpoint(0.0), lastStart(0), 
+      lastError(0), integral(0) {}
     
-    void inc() {
-      set(setpoint+1);
+    float getTemp() { return temp; }
+    
+    void incSetpoint() {
+      setSetpoint(setpoint+1);
     };
     
-    void dec() {
-      set(setpoint-1);
+    void decSetpoint() {
+      setSetpoint(setpoint-1);
     }
     
-    void set(float s) {
+    void setSetpoint(float s) {
       if(s-setpoint > 10) { lastStart = millis(); }
       setpoint = s;
-      pinMode(9, s==0.0 ? INPUT : OUTPUT);
     }
     
-    float value() { 
-      if(getOnTime() > 60.0) { set(0.0); }
+    float getSetpoint() { 
+      if(getOnTime() > 60.0) { setSetpoint(0.0); }
       return setpoint; 
     }
-    float getOnTime() { return (millis() - lastStart) / (1000.0 * 60.0); }
+    
+    float getOnTime() { 
+      return (millis() - lastStart) / (1000.0 * 60.0); 
+    }
+    
+    void setTemp(float temp_) { 
+      temp = temp_;
+      float error = setpoint - temp;   
+      if(abs(error) < 4) { integral += error; } //windup protection
+      float derivative = error - lastError;
+      lastError = error;
+      
+      int val = (error * p) + (integral * i) + (derivative * d) ;
+      
+      if(val <= 0) { 
+        analogWrite(9, 0);
+        pinMode(9, INPUT);
+      }
+      else {
+        if(val > 255) { val = 255; }
+        
+        pinMode(9, OUTPUT);
+        analogWrite(9, val);
+      }
+      
+      Serial.print( getOnTime());
+      Serial.print(",");
+    
+    
+      Serial.print(millis() / 1000.0, 2);
+      Serial.print(",");
+      Serial.print( temp, 2 );
+      Serial.print(",");
+      Serial.print(setpoint);
+      Serial.print(",");
+      Serial.print(val);
+      Serial.println();
+    }
 };
 
-Setpoint setpoint;
+Controller controller(4.0, 0.001, 0.0);
+TempSensor ts;
+unsigned long int nextUpdate = 0;
 
 boolean handler(char* URL)
 {
@@ -51,24 +86,24 @@ boolean handler(char* URL)
       WiServer.print("{\"url\":\"");
       WiServer.print(URL);
       if (strcmp(URL, "/start") == 0) {
-        setpoint.set(99.0);
+        controller.setSetpoint(99.0);
       }
       else if(strcmp(URL, "/stop") == 0) {
-        setpoint.set(0.0);
+        controller.setSetpoint(0.0);
       }
       else if(strcmp(URL, "/up") == 0) {
-        setpoint.inc();
+        controller.incSetpoint();
       }
       else if(strcmp(URL, "/down") == 0) {
-        setpoint.dec();
+        controller.decSetpoint();
       }
         WiServer.print("\"");
         WiServer.print(",\"temp\":");
-        WiServer.print(temp);
+        WiServer.print(controller.getTemp());
         WiServer.print(",\"target\":");
-        WiServer.print(setpoint.value());
+        WiServer.print(controller.getSetpoint());
         WiServer.print(",\"ontime\":");
-        WiServer.print( setpoint.getOnTime() );
+        WiServer.print( controller.getOnTime() );
         WiServer.print("}");
         return true;
     }
@@ -84,7 +119,7 @@ void setup()
   WiServer.enableVerboseMode(true);
   Serial.println("Wifi active");
   nextUpdate = millis();
-  setpoint.set(99.0);
+  controller.setSetpoint(99.0);
 }
  
 void loop()
@@ -94,38 +129,13 @@ void loop()
     nextUpdate += 300;
     //check the temperature
     ts.update();
-    temp = ts.temp*0.01;
-    ambient = ts.avgamb*0.01;
     
     //control the temperature
-    float error = setpoint.value() - temp;
-    val = error * 10; // val = 255 when temp is 25.5 degC below setpoint or less...
-    if(val < 0) { val = 0; }
-    if(val > 255) { val = 255; }
-    analogWrite(9, val);
-    
-    serialDump();
+    controller.setTemp(ts.temp*0.01);
   }
   
   //let the web server do its thing  
   WiServer.server_task();
 }
 
-void serialDump()
-{
-    Serial.print( setpoint.getOnTime());
-    Serial.print(",");
-  
-  
-    Serial.print(millis() / 1000.0, 2);
-    Serial.print(",");
-    Serial.print( ambient, 2 );
-    Serial.print(",");
-    Serial.print( temp, 2 );
-    Serial.print(",");
-    Serial.print(val);
-    Serial.print(",");
-    Serial.print(setpoint.value());
-    Serial.println();
-}
 
