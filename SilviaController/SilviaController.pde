@@ -1,3 +1,4 @@
+#include <TimerOne.h>
 #include <WiServer.h>
 #include <Wire.h>
 #include <TypeK.h>
@@ -31,7 +32,6 @@ class Controller {
     }
     
     float getSetpoint() { 
-      if(getOnTime() > 60.0) { setSetpoint(0.0); }
       return setpoint; 
     }
     
@@ -41,6 +41,8 @@ class Controller {
     
     void setTemp(float temp_) { 
       temp = temp_;
+      if(getOnTime() > 60.0) { setSetpoint(0.0); }
+      
       float error = setpoint - temp;   
       if(abs(error) < 4) { integral += error; } //windup protection
       float derivative = error - lastError;
@@ -48,16 +50,9 @@ class Controller {
       
       int val = (error * p) + (integral * i) + (derivative * d) ;
       
-      if(val <= 0) { 
-        analogWrite(9, 0);
-        pinMode(9, INPUT);
-      }
-      else {
-        if(val > 255) { val = 255; }
-        
-        pinMode(9, OUTPUT);
-        analogWrite(9, val);
-      }
+      if(val <= 0)  { val = 0;   }
+      if(val > 1023) { val = 1023; }
+      Timer1.setPwmDuty(9, val);
       
       Serial.print( getOnTime());
       Serial.print(",");
@@ -74,7 +69,7 @@ class Controller {
     }
 };
 
-Controller controller(4.0, 0.001, 0.0);
+Controller controller(20.0);
 TempSensor ts;
 unsigned long int nextUpdate = 0;
 
@@ -113,10 +108,13 @@ boolean handler(char* URL)
 
 void setup()
 {
+  Timer1.initialize(5000);
+  
+  Timer1.disablePwm(10); //WiServer needs pin 10!
+  Timer1.pwm(9, 0); //set up pin 9
   Serial.begin(9600);
   ts.init();
   WiServer.init(handler);
-  WiServer.enableVerboseMode(true);
   Serial.println("Wifi active");
   nextUpdate = millis();
   controller.setSetpoint(99.0);
@@ -126,7 +124,7 @@ void loop()
 {
   if(millis() > nextUpdate)
   {
-    nextUpdate += 300;
+    nextUpdate += 500;
     //check the temperature
     ts.update();
     
