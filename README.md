@@ -58,4 +58,4 @@ See [these posts](http://nicolas.kruchten.com/content/tag/robot/) for more info 
 See [these posts](http://nicolas.kruchten.com/content/tag/silvia/) for more info on this Silvia mod project.
 
 * tc4v1
-* SilviaController
+* [SilviaController](SilviaController)
