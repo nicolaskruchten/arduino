@@ -10,8 +10,8 @@ This repo isn't necessarily super-well-organized for someone else to browse thro
 
 ## Libraries I wrote
 
-* [WiiChuck](https://github.com/nicolaskruchten/arduino/libraries/WiiChuck) - wrapper for interfacing with my wireless WiiChuck
-* [PololuMotorController](https://github.com/nicolaskruchten/arduino/libraries/PololuMotorController) - wrapper for interfacing with the Pololu Motor Controller
+* WiiChuck - wrapper for interfacing with my wireless WiiChuck
+* PololuMotorController - wrapper for interfacing with the Pololu Motor Controller
 
 ## First tries
 
@@ -39,23 +39,23 @@ See [these posts](http://nicolas.kruchten.com/content/tag/robot/) for more info 
 
 * IRsensor
 * IRAvoiding
-* [IRAvoidingNoEvents](https://github.com/nicolaskruchten/arduino/IRAvoidingNoEvents)
+* IRAvoidingNoEvents
 
 ### iPad-controlled robot
 
 * ipadControlled
-* [iPadControlledIRAvoidingNoEvents](https://github.com/nicolaskruchten/arduino/iPadControlledIRAvoidingNoEvents)
+* iPadControlledIRAvoidingNoEvents
 
 ### WiiChuck-controlled robot
 
 * wiichuckFirst
 * wiichuckReWrite
 * wiichuckControlledIRAvoidingNoEvents
-* [wiichuckControlledIRAvoidingLibrary](https://github.com/nicolaskruchten/arduino/wiichuckControlledIRAvoidingLibrary)
+* wiichuckControlledIRAvoidingLibrary
 
 ## Rancilio Silvia project
 
 See [these posts](http://nicolas.kruchten.com/content/tag/silvia/) for more info on this Silvia mod project.
 
-* [tc4v1](https://github.com/nicolaskruchten/arduino/tc4v1)
-* [SilviaController](https://github.com/nicolaskruchten/arduino/SilviaController)
+* tc4v1
+* SilviaController
